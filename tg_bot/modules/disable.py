@@ -41,9 +41,10 @@ if is_module_loaded(FILENAME):
             user = update.effective_user  # type: Optional[User]
             if super().check_update(update):
                 # Should be safe since check_update passed.
-                if update.effective_user:
-                    if bsql.is_user_blacklisted(update.effective_user.id):
-                        return
+                if update.effective_user and bsql.is_user_blacklisted(
+                    update.effective_user.id
+                ):
+                    return
                 command = update.effective_message.text_html.split(None, 1)[0][1:].split('@')[0]
 
                 # disabled, admincmd, user admin
@@ -65,16 +66,17 @@ if is_module_loaded(FILENAME):
 
         def check_update(self, update):
             chat = update.effective_chat
-            if update.effective_user:
-                if not bsql.is_user_blacklisted(update.effective_user.id):
-                    return super().check_update(update) and not sql.is_command_disabled(chat.id, self.friendly)
+            if update.effective_user and not bsql.is_user_blacklisted(
+                update.effective_user.id
+            ):
+                return super().check_update(update) and not sql.is_command_disabled(chat.id, self.friendly)
 
 
     @run_async
     @user_admin
     def disable(bot: Bot, update: Update, args: List[str]):
         chat = update.effective_chat  # type: Optional[Chat]
-        if len(args) >= 1:
+        if args:
             disable_cmd = args[0]
             if disable_cmd.startswith(CMD_STARTERS):
                 disable_cmd = disable_cmd[1:]
@@ -94,7 +96,7 @@ if is_module_loaded(FILENAME):
     @user_admin
     def enable(bot: Bot, update: Update, args: List[str]):
         chat = update.effective_chat  # type: Optional[Chat]
-        if len(args) >= 1:
+        if args:
             enable_cmd = args[0]
             if enable_cmd.startswith(CMD_STARTERS):
                 enable_cmd = enable_cmd[1:]
@@ -113,9 +115,11 @@ if is_module_loaded(FILENAME):
     @user_admin
     def list_cmds(bot: Bot, update: Update):
         if DISABLE_CMDS + DISABLE_OTHER:
-            result = ""
-            for cmd in set(DISABLE_CMDS + DISABLE_OTHER):
-                result += " - `{}`\n".format(escape_markdown(cmd))
+            result = "".join(
+                " - `{}`\n".format(escape_markdown(cmd))
+                for cmd in set(DISABLE_CMDS + DISABLE_OTHER)
+            )
+
             update.effective_message.reply_text("The following commands are toggleable:\n{}".format(result),
                                                 parse_mode=ParseMode.MARKDOWN)
         else:
@@ -128,9 +132,7 @@ if is_module_loaded(FILENAME):
         if not disabled:
             return "No commands are disabled!"
 
-        result = ""
-        for cmd in disabled:
-            result += " - `{}`\n".format(escape_markdown(cmd))
+        result = "".join(" - `{}`\n".format(escape_markdown(cmd)) for cmd in disabled)
         return "The following commands are currently restricted:\n{}".format(result)
 
 

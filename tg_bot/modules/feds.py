@@ -75,7 +75,7 @@ def new_fed(bot: Bot, update: Update):
 		update.effective_message.reply_text("Please run this command in my PM only!")
 		return
 	fednam = message.text.split(None, 1)[1]
-	if not fednam == '':
+	if fednam != '':
 		fed_id = str(uuid.uuid4())
 		fed_name = fednam
 		LOGGER.info(fed_id)
@@ -157,41 +157,37 @@ def fed_chat(bot: Bot, update: Update, args: List[str]):
 
 
 def join_fed(bot: Bot, update: Update, args: List[str]):
-    chat = update.effective_chat  # type: Optional[Chat]
-    user = update.effective_user  # type: Optional[User]
-    message = update.effective_message
-    administrators = chat.get_administrators()
-    fed_id = sql.get_fed_id(chat.id)
+	chat = update.effective_chat  # type: Optional[Chat]
+	user = update.effective_user  # type: Optional[User]
+	message = update.effective_message
+	administrators = chat.get_administrators()
+	fed_id = sql.get_fed_id(chat.id)
 
-    if user.id in SUDO_USERS:
-        pass
-    else:
-        for admin in administrators:
-            status = admin.status
-            if status == "creator":
-                print(admin)
-                if str(admin.user.id) == str(user.id):
-                    pass
-                else:
-                    update.effective_message.reply_text("Only the group creator can do it!")
-                    return
-    if fed_id:
-        message.reply_text("Uh, you can only join one federation in a chat.")
-        return
+	if user.id not in SUDO_USERS:
+		for admin in administrators:
+			status = admin.status
+			if status == "creator":
+				print(admin)
+				if str(admin.user.id) != str(user.id):
+					update.effective_message.reply_text("Only the group creator can do it!")
+					return
+	if fed_id:
+	    message.reply_text("Uh, you can only join one federation in a chat.")
+	    return
 
-    if len(args) >= 1:
-        fedd = args[0]
-        print(fedd)
-        if sql.search_fed_by_id(fedd) == False:
-            message.reply_text("Please enter a valid federation ID.")
-            return
+	if args:
+		fedd = args[0]
+		print(fedd)
+		if sql.search_fed_by_id(fedd) == False:
+		    message.reply_text("Please enter a valid federation ID.")
+		    return
 
-        x = sql.chat_join_fed(fedd, chat.id)
-        if not x:
-                message.reply_text("Failed to join federation! Please head to @PhoenixSupport to report this.")
-                return
+		x = sql.chat_join_fed(fedd, chat.id)
+		if not x:
+		        message.reply_text("Failed to join federation! Please head to @PhoenixSupport to report this.")
+		        return
 
-        message.reply_text("Chat successfully added to federation!")
+		message.reply_text("Chat successfully added to federation!")
 
 
 @run_async
@@ -245,8 +241,7 @@ def user_join_fed(bot: Bot, update: Update, args: List[str]):
 		if user_id == bot.id:
 			update.effective_message.reply_text("Hah, you're really funny.")
 			return
-		res = sql.user_join_fed(fed_id, user_id)
-		if res:
+		if res := sql.user_join_fed(fed_id, user_id):
 			update.effective_message.reply_text("Successfully Promoted!")
 		else:
 			update.effective_message.reply_text("Failed to promote!")
@@ -463,9 +458,7 @@ def fed_ban(bot: Bot, update: Update, args: List[str]):
 			try:
 				bot.kick_chat_member(chat, user_id)
 			except BadRequest as excp:
-				if excp.message in FBAN_ERRORS:
-					pass
-				else:
+				if excp.message not in FBAN_ERRORS:
 					LOGGER.warning("Could not fban in {} because: {}".format(chat, excp.message))
 			except TelegramError:
 				pass
@@ -582,9 +575,7 @@ def unfban(bot: Bot, update: Update, args: List[str]):
 				"""
 
 		except BadRequest as excp:
-			if excp.message in UNFBAN_ERRORS:
-				pass
-			else:
+			if excp.message not in UNFBAN_ERRORS:
 				LOGGER.warning("Cannot remove fban in {} because: {}".format(chat, excp.message))
 		except TelegramError:
 			pass
@@ -598,7 +589,7 @@ def unfban(bot: Bot, update: Update, args: List[str]):
 			pass
 
 	message.reply_text("{} has been un-fbanned.".format(mention_html(user_chat.id, user_chat.first_name)),
-        parse_mode=ParseMode.HTML)
+	parse_mode=ParseMode.HTML)
 	FEDADMIN = sql.all_fed_users(fed_id)
 """
 	for x in FEDADMIN:
@@ -630,7 +621,7 @@ def set_frules(bot: Bot, update: Update, args: List[str]):
 		update.effective_message.reply_text("Only federation admins can do this!")
 		return
 
-	if len(args) >= 1:
+	if args:
 		msg = update.effective_message  # type: Optional[Message]
 		raw_text = msg.text
 		args = raw_text.split(None, 1)  # use python's maxsplit to separate cmd and args

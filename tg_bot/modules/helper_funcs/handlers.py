@@ -47,31 +47,40 @@ class CustomCommandHandler(tg.CommandHandler):
         super().__init__(command, callback, **kwargs)
 
     def check_update(self, update):
-        if (isinstance(update, Update)
-                and (update.message or update.edited_message and self.allow_edited)):
-            message = update.message or update.edited_message
-            if update.effective_user:
-                if sql.is_user_blacklisted(update.effective_user.id):
-                    return False
+        if (
+            not isinstance(update, Update)
+            or not update.message
+            and (not update.edited_message or not self.allow_edited)
+        ):
+            return
 
-            if message.text and len(message.text) > 1:
-                fst_word = message.text_html.split(None, 1)[0]
-                if len(fst_word) > 1 and any(fst_word.startswith(start) for start in CMD_STARTERS):
-                    command = fst_word[1:].split('@')
-                    command.append(message.bot.username)  # in case the command was sent without a username
-                    if self.filters is None:
-                        res = True
-                    elif isinstance(self.filters, list):
-                        res = any(func(message) for func in self.filters)
-                    else:
-                        res = self.filters(message)
-                    if command[0].lower() in self.command and command[1].lower() == message.bot.username.lower():
-                        if SpamChecker.check_user(update.effective_user.id):
-                            return None
-                    return res and (command[0].lower() in self.command
-                                    and command[1].lower() == message.bot.username.lower())
-
+        message = update.message or update.edited_message
+        if update.effective_user and sql.is_user_blacklisted(
+            update.effective_user.id
+        ):
             return False
+
+        if message.text and len(message.text) > 1:
+            fst_word = message.text_html.split(None, 1)[0]
+            if len(fst_word) > 1 and any(fst_word.startswith(start) for start in CMD_STARTERS):
+                command = fst_word[1:].split('@')
+                command.append(message.bot.username)  # in case the command was sent without a username
+                if self.filters is None:
+                    res = True
+                elif isinstance(self.filters, list):
+                    res = any(func(message) for func in self.filters)
+                else:
+                    res = self.filters(message)
+                if (
+                    command[0].lower() in self.command
+                    and command[1].lower() == message.bot.username.lower()
+                    and SpamChecker.check_user(update.effective_user.id)
+                ):
+                    return None
+                return res and (command[0].lower() in self.command
+                                and command[1].lower() == message.bot.username.lower())
+
+        return False
 
 
 class CustomRegexHandler(tg.RegexHandler):
@@ -79,11 +88,11 @@ class CustomRegexHandler(tg.RegexHandler):
         super().__init__(pattern, callback, **kwargs)
 
     def check_update(self, update):
-        if isinstance(update, Update) and update.effective_message:
-            if update.effective_user:
-                if sql.is_user_blacklisted(update.effective_user.id):
-                    return False
-        else:
+        if not isinstance(update, Update) or not update.effective_message:
+            return False
+        if update.effective_user and sql.is_user_blacklisted(
+            update.effective_user.id
+        ):
             return False
         if any([self.message_updates and update.message,
                     self.edited_updates and (update.edited_message or update.edited_channel_post),
@@ -100,9 +109,10 @@ class CustomMessageHandler(tg.MessageHandler):
 
     def check_update(self, update):
         if isinstance(update, Update) and self._is_allowed_update(update):
-            if update.effective_user:
-                if sql.is_user_blacklisted(update.effective_user.id):
-                    return False
+            if update.effective_user and sql.is_user_blacklisted(
+                update.effective_user.id
+            ):
+                return False
             if self.filters is None:
                 res = True
 

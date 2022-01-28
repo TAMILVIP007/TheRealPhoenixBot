@@ -27,10 +27,14 @@ def promote(bot: Bot, update: Update, args: List[str]) -> str:
     message = update.effective_message  # type: Optional[Message]
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
-    
+
     promoter = chat.get_member(user.id)
-    
-    if not (promoter.can_promote_members or promoter.status == "creator") and not user.id in SUDO_USERS:
+
+    if (
+        not promoter.can_promote_members
+        and promoter.status != "creator"
+        and user.id not in SUDO_USERS
+    ):
         message.reply_text("You don't have the necessary rights to do that!")
         return ""
 
@@ -40,7 +44,7 @@ def promote(bot: Bot, update: Update, args: List[str]) -> str:
         return ""
 
     user_member = chat.get_member(user_id)
-    if user_member.status == 'administrator' or user_member.status == 'creator':
+    if user_member.status in ['administrator', 'creator']:
         message.reply_text("How am I meant to promote someone that's already an admin?")
         return ""
 
@@ -78,12 +82,16 @@ def set_title(bot: Bot, update: Update, args):
     chat = update.effective_chat
     user = update.effective_user
     message = update.effective_message
-    
+
     promoter = chat.get_member(user.id)
-    if not (promoter.can_promote_members or promoter.status == "creator") and not user.id in SUDO_USERS:
+    if (
+        not promoter.can_promote_members
+        and promoter.status != "creator"
+        and user.id not in SUDO_USERS
+    ):
         message.reply_text("You don't have the necessary rights to do that!")
         return
-    
+
     user_id, title = extract_user_and_text(message, args)
     if not user_id:
         message.reply_text("You don't seem to be referring to a user.")
@@ -98,7 +106,7 @@ def set_title(bot: Bot, update: Update, args):
         f"&user_id={user_id}"
         f"&custom_title={title}"
     )
-    
+
     if response.status_code != 200:
         resp_text = json.loads(response.text)
         text = f"An error occurred:\n`{resp_text.get('description')}`"
@@ -127,7 +135,7 @@ def demote(bot: Bot, update: Update, args: List[str]) -> str:
         message.reply_text("This person CREATED the chat, how would I demote them?")
         return ""
 
-    if not user_member.status == 'administrator':
+    if user_member.status != 'administrator':
         message.reply_text("Can't demote what wasn't promoted!")
         return ""
 
@@ -168,21 +176,19 @@ def pin(bot: Bot, update: Update, args: List[str]) -> str:
     user = update.effective_user  # type: Optional[User]
     chat = update.effective_chat  # type: Optional[Chat]
 
-    is_group = chat.type != "private" and chat.type != "channel"
+    is_group = chat.type not in ["private", "channel"]
 
     prev_message = update.effective_message.reply_to_message
 
     is_silent = True
-    if len(args) >= 1:
-        is_silent = not (args[0].lower() == 'notify' or args[0].lower() == 'loud' or args[0].lower() == 'violent')
+    if args:
+        is_silent = not args[0].lower() in ['notify', 'loud', 'violent']
 
     if prev_message and is_group:
         try:
             bot.pinChatMessage(chat.id, prev_message.message_id, disable_notification=is_silent)
         except BadRequest as excp:
-            if excp.message == "Chat_not_modified":
-                pass
-            else:
+            if excp.message != "Chat_not_modified":
                 raise
         return "<b>{}:</b>" \
                "\n#PINNED" \
@@ -203,9 +209,7 @@ def unpin(bot: Bot, update: Update) -> str:
     try:
         bot.unpinChatMessage(chat.id)
     except BadRequest as excp:
-        if excp.message == "Chat_not_modified":
-            pass
-        else:
+        if excp.message != "Chat_not_modified":
             raise
 
     return "<b>{}:</b>" \
@@ -221,7 +225,7 @@ def invite(bot: Bot, update: Update):
     chat = update.effective_chat  # type: Optional[Chat]
     if chat.username:
         update.effective_message.reply_text("@" + chat.username)
-    elif chat.type == chat.SUPERGROUP or chat.type == chat.CHANNEL:
+    elif chat.type in [chat.SUPERGROUP, chat.CHANNEL]:
         bot_member = chat.get_member(bot.id)
         if bot_member.can_invite_users:
             invitelink = chat.invite_link

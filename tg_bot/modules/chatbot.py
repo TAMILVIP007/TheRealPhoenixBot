@@ -23,27 +23,25 @@ def add_chat(bot: Bot, update: Update):
     global api_client
     chat_id = update.effective_chat.id
     msg = update.effective_message
-    is_chat = sql.is_chat(chat_id)
-    if not is_chat:
+    if is_chat := sql.is_chat(chat_id):
+        msg.reply_text("AI is already enabled for this chat!")
+    else:
         ses = api_client.create_session()
         ses_id = str(ses.id)
         expires = str(ses.expires)
         sql.set_ses(chat_id, ses_id, expires)
         msg.reply_text("AI successfully enabled for this chat!")
-    else:
-        msg.reply_text("AI is already enabled for this chat!")
         
         
 @run_async
 def remove_chat(bot: Bot, update: Update):
     msg = update.effective_message
     chat_id = update.effective_chat.id
-    is_chat = sql.is_chat(chat_id)
-    if not is_chat:
-        msg.reply_text("AI isn't enabled here in the first place!")
-    else:
+    if is_chat := sql.is_chat(chat_id):
         sql.rem_chat(chat_id)
         msg.reply_text("AI disabled successfully!")
+    else:
+        msg.reply_text("AI isn't enabled here in the first place!")
         
         
 def check_message(bot: Bot, message):
@@ -95,11 +93,9 @@ def list_chatbot_chats(bot: Bot, update: Update):
     for chat in chats:
         try:
             x = bot.get_chat(int(*chat))
-            name = x.title if x.title else x.first_name
+            name = x.title or x.first_name
             text += f"• <code>{name}</code>\n"
-        except BadRequest:
-            sql.rem_chat(*chat)
-        except Unauthorized:
+        except (BadRequest, Unauthorized):
             sql.rem_chat(*chat)
         except RetryAfter as e:
             sleep(e.retry_after)

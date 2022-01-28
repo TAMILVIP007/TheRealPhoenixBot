@@ -24,11 +24,7 @@ def afk(bot: Bot, update: Update):
     if user.id in (777000, 1087968824):
         return
 
-    if len(args) >= 2:
-        reason = args[1]
-    else:
-        reason = ""
-
+    reason = args[1] if len(args) >= 2 else ""
     sql.set_afk(update.effective_user.id, reason)
     update.effective_message.reply_text("{} is now AFK!".format(update.effective_user.first_name))
 
@@ -40,8 +36,7 @@ def no_longer_afk(bot: Bot, update: Update):
     if not user:  # ignore channels
         return
 
-    res = sql.rm_afk(user.id)
-    if res:
+    if res := sql.rm_afk(user.id):
         update.effective_message.reply_text("{} is no longer AFK!".format(update.effective_user.first_name))
 
 

@@ -177,8 +177,12 @@ def user_can_ban(func):
     def user_is_banhammer(bot: Bot, update: Update, *args, **kwargs):
         user = update.effective_user.id
         member = update.effective_chat.get_member(user)
-        if not (member.can_restrict_members or member.status == "creator") \
-                and user not in SUDO_USERS and user != 1087968824:
+        if (
+            not member.can_restrict_members
+            and member.status != "creator"
+            and user not in SUDO_USERS
+            and user != 1087968824
+        ):
             update.effective_message.reply_text("Sorry son, but you're not worthy to wield the banhammer.")
             return ""
         return func(bot, update, *args, **kwargs)
@@ -191,8 +195,12 @@ def user_can_mute(func):
     def user_has_tape(bot: Bot, update: Update, *args, **kwargs):
         user = update.effective_user.id
         member = update.effective_chat.get_member(user)
-        if not (member.can_restrict_members or member.status == "creator") \
-                and user not in SUDO_USERS and user != 1087968824:
+        if (
+            not member.can_restrict_members
+            and member.status != "creator"
+            and user not in SUDO_USERS
+            and user != 1087968824
+        ):
             update.effective_message.reply_text("You ran out of tape!")
             return ""
         return func(bot, update, *args, **kwargs)
@@ -205,8 +213,12 @@ def user_can_warn(func):
     def user_is_warnhammer(bot: Bot, update: Update, *args, **kwargs):
         user = update.effective_user.id
         member = update.effective_chat.get_member(user)
-        if not (member.can_restrict_members or member.status == "creator") \
-                and user not in SUDO_USERS and user != 1087968824:
+        if (
+            not member.can_restrict_members
+            and member.status != "creator"
+            and user not in SUDO_USERS
+            and user != 1087968824
+        ):
             update.effective_message.reply_text("You don't have the necessary permissions!")
             return ""
         return func(bot, update, *args, **kwargs)
@@ -217,26 +229,22 @@ def user_can_warn(func):
 def connection_status(func):
     @wraps(func)
     def connected_status(bot: Bot, update: Update, *args, **kwargs):
-        conn = connected(
+        if conn := connected(
             bot,
             update,
             update.effective_chat,
             update.effective_user.id,
             need_admin=False,
-        )
-
-        if conn:
+        ):
             chat = dispatcher.bot.getChat(conn)
             update.__setattr__("_effective_chat", chat)
-            return func(bot, update, *args, **kwargs)
-        else:
-            if update.effective_message.chat.type == "private":
-                update.effective_message.reply_text(
-                    "Send /connect in a group that you and I have in common first."
-                )
-                return connected_status
+        elif update.effective_message.chat.type == "private":
+            update.effective_message.reply_text(
+                "Send /connect in a group that you and I have in common first."
+            )
+            return connected_status
 
-            return func(bot, update, *args, **kwargs)
+        return func(bot, update, *args, **kwargs)
 
     return connected_status
 

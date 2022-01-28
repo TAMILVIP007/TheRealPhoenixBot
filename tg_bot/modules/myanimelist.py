@@ -49,13 +49,9 @@ def search_anime(bot: Bot, update: Update, args: List[str]) -> None:
         episodes = res.num_episodes
     else:
         episodes = None
-    genres_list = []
-    for i in res.genres:
-        genres_list.append(i.name)
+    genres_list = [i.name for i in res.genres]
     genres = ", ".join(genres_list)
-    studio_list = []
-    for i in res.studios:
-        studio_list.append(i.name)
+    studio_list = [i.name for i in res.studios]
     studios = ", ".join(studio_list)
     if res.status == "currently_airing":
         status = "Currently Airing"
@@ -79,7 +75,7 @@ def search_anime(bot: Bot, update: Update, args: List[str]) -> None:
     keyb = [
         [InlineKeyboardButton("More Information", url=f"https://myanimelist.net/anime/{anime_id}")]
     ]
-    
+
     msg.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyb))
 
 
@@ -99,12 +95,10 @@ def search_manga(bot: Bot, update: Update, args: List[str]) -> None:
         return
     manga_id = manga[0].id
     res = client.get_manga_details(manga_id)
-    genres_list = []
-    for i in res.genres:
-        genres_list.append(i.name)
+    genres_list = [i.name for i in res.genres]
     genres = ", ".join(genres_list)
     image = res.main_picture.large
-    
+
     text = f"<b>{res.title} ({res.alternative_titles.ja})</b>\n"
     text += f"<b>Type</b>: <code>{res.media_type.capitalize()}</code>\n"
     text += f"<b>Status</b>: <code>{res.status.replace('_', ' ').capitalize()}</code>\n"
@@ -120,7 +114,7 @@ def search_manga(bot: Bot, update: Update, args: List[str]) -> None:
     keyb = [
         [InlineKeyboardButton("More Information", url=f"https://myanimelist.net/manga/{manga_id}")]
     ]
-    
+
     msg.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyb))
 
 

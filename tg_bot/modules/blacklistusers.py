@@ -20,15 +20,14 @@ def bl_user(bot: Bot, update: Update, args):
     update.effective_message.reply_text("User has been blacklisted from using me!")
     
 
-@run_async 
+@run_async
 def bl_users(bot: Bot, update: Update):
     rep = "<b>Blacklisted Users</b>\n"
     for x in sql.BLACKLIST_USERS:
         name = bot.get_chat(x)
         name = name.first_name.replace("<", "&lt;")
         name = name.replace(">", "&gt;")
-        reason = sql.get_reason(x)
-        if reason:
+        if reason := sql.get_reason(x):
             rep += f"• <a href='tg://user?id={x}'>{name}</a> :- {reason}\n"
         else:
             rep += f"• <a href='tg://user?id={x}'>{name}</a>\n"
@@ -38,8 +37,7 @@ def bl_users(bot: Bot, update: Update):
 @run_async
 def unbl_user(bot: Bot, update: Update, args):
     rep = update.effective_message
-    msg = update.effective_message.reply_to_message
-    if msg:
+    if msg := update.effective_message.reply_to_message:
         user_id = str(msg.from_user.id)
     else:
         user_id = args[0]
@@ -55,12 +53,11 @@ def __user_info__(user_id):
         return ""
 
     is_blacklisted = sql.is_user_blacklisted(user_id)
-    
+
     text = "Blacklisted: <b>{}</b>"
     if is_blacklisted:
         text = text.format("Yes")
-        reason = sql.get_reason(user_id)
-        if reason:
+        if reason := sql.get_reason(user_id):
             text += f"\nReason: <code>{reason}</code>"
     else:
         text = text.format("No")

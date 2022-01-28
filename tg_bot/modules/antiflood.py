@@ -93,8 +93,7 @@ def check_flood(bot: Bot, update: Update) -> str:
 def flood_button(bot: Bot, update: Update):
     query = update.callback_query
     user = update.effective_user
-    match = re.match(r"unmute_flooder\((.+?)\)", query.data)
-    if match:
+    if match := re.match(r"unmute_flooder\((.+?)\)", query.data):
         user_id = match.group(1)
         chat = update.effective_chat.id
         try:
@@ -135,9 +134,9 @@ def set_flood(bot: Bot, update: Update, args: List[str]) -> str:
         chat_id = update.effective_chat.id
         chat_name = update.effective_message.chat.title
 
-    if len(args) >= 1:
+    if args:
         val = args[0].lower()
-        if val == "off" or val == "no" or val == "0":
+        if val in ["off", "no", "0"]:
             sql.set_flood(chat_id, 0)
             if conn:
                 text = message.reply_text("Antiflood has been disabled in {}.".format(chat_name))
@@ -207,11 +206,10 @@ def flood(bot: Bot, update: Update):
         else:
             text = msg.reply_text("I'm not enforcing any flood control here!")
 
+    elif conn:
+        text = msg.reply_text("I'm currently restricting members after {} consecutive messages in {}.".format(limit, chat_name))
     else:
-        if conn:
-            text = msg.reply_text("I'm currently restricting members after {} consecutive messages in {}.".format(limit, chat_name))
-        else:
-            text = msg.reply_text("I'm currently restricting members after {} consecutive messages.".format(limit))
+        text = msg.reply_text("I'm currently restricting members after {} consecutive messages.".format(limit))
 
 
 

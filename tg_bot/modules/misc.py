@@ -160,8 +160,7 @@ def slap(bot: Bot, update: Update, args: List[str]):
     else:
         curr_user = """<a href="tg://user?id={}">{}</a>""".format(msg.from_user.id, msg.from_user.first_name)
 
-    user_id = extract_user(update.effective_message, args)
-    if user_id:
+    if user_id := extract_user(update.effective_message, args):
         slapped_user = bot.get_chat(user_id)
         user1 = curr_user
         if slapped_user.username:
@@ -171,7 +170,6 @@ def slap(bot: Bot, update: Update, args: List[str]):
             user2 = """<a href="tg://user?id={}">{}</a>""".format(slapped_user.id,
                                                    slapped_user.first_name)
 
-    # if no target found, bot targets the sender
     else:
         user1 = """<a href="tg://user?id={}">{}</a>""".format(bot.id, bot.first_name)
         user2 = curr_user
@@ -197,8 +195,7 @@ def get_bot_ip(bot: Bot, update: Update):
 
 @run_async
 def get_id(bot: Bot, update: Update, args: List[str]):
-    user_id = extract_user(update.effective_message, args)
-    if user_id:
+    if user_id := extract_user(update.effective_message, args):
         if update.effective_message.reply_to_message and update.effective_message.reply_to_message.forward_from:
             user1 = update.effective_message.reply_to_message.from_user
             user2 = update.effective_message.reply_to_message.forward_from
@@ -228,9 +225,7 @@ def get_id(bot: Bot, update: Update, args: List[str]):
 def info(bot: Bot, update: Update, args: List[str]):
     msg = update.effective_message  # type: Optional[Message]
     chat = update.effective_chat # type: Optional[Chat]
-    user_id = extract_user(update.effective_message, args)
-
-    if user_id:
+    if user_id := extract_user(update.effective_message, args):
         user = bot.get_chat(user_id)
 
     elif not msg.reply_to_message and not args:
@@ -259,21 +254,20 @@ def info(bot: Bot, update: Update, args: List[str]):
 
     if user.id == OWNER_ID:
         text += "\n\nThis person is my owner."
+    elif user.id in BLACKLIST_USERS:
+        pass
+
+    elif user.id in SUDO_USERS:
+        text += "\n\nThis person is one of my sudo users."
+
     else:
-        if user.id in BLACKLIST_USERS:
-            pass
+        if user.id in SUPPORT_USERS:
+            text += "\n\nThis person is one of my support users." \
 
-        elif user.id in SUDO_USERS:
-            text += "\n\nThis person is one of my sudo users."
-                   
-        else:
-            if user.id in SUPPORT_USERS:
-                text += "\n\nThis person is one of my support users." \
-                        
 
-            if user.id in WHITELIST_USERS:
-                text += "\n\nThis person has been whitelisted! " \
-                        "That means I'm not allowed to ban/kick them."
+        if user.id in WHITELIST_USERS:
+            text += "\n\nThis person has been whitelisted! " \
+                    "That means I'm not allowed to ban/kick them."
 
     for mod in USER_INFO:
         try:
@@ -365,9 +359,21 @@ def ram(bot: Bot, update: Update):
     cmd = "ps -o pid"
     output = shell(cmd)[0].decode()
     processes = output.splitlines()
-    mem = 0
-    for p in processes[1:]:
-        mem += int(float(shell("ps u -p {} | awk ".format(p)+"'{sum=sum+$6}; END {print sum/1024}'")[0].decode().rstrip().replace("'","")))
+    mem = sum(
+        int(
+            float(
+                shell(
+                    "ps u -p {} | awk ".format(p)
+                    + "'{sum=sum+$6}; END {print sum/1024}'"
+                )[0]
+                .decode()
+                .rstrip()
+                .replace("'", "")
+            )
+        )
+        for p in processes[1:]
+    )
+
     update.message.reply_text(f"RAM usage = <code>{mem} MiB</code>", parse_mode=ParseMode.HTML)
 
 
@@ -485,16 +491,13 @@ def leave_chat(bot: Bot, update: Update, args):
     except BadRequest:
         msg.reply_text("Give me a valid ID!")
         return
-    reason = " ".join(args[1:])
-    if reason:
+    if reason := " ".join(args[1:]):
         try:
             chat.send_message(
                 f"I'm outta here!\nReason: <code>{reason}</code>",
                 parse_mode="HTML"
             )
-        except BadRequest:
-            pass
-        except Unauthorized:
+        except (BadRequest, Unauthorized):
             pass
     try:
         chat.leave()

@@ -194,8 +194,7 @@ def react(bot: Bot, update: Update):
 def shout(bot: Bot, update: Update, args):
     msg = "```"
     text = " ".join(args)
-    result = []
-    result.append(' '.join([s for s in text]))
+    result = [' '.join(list(text))]
     for pos, symbol in enumerate(text[1:]):
         result.append(symbol + ' ' + '  ' * pos + symbol)
     result = list("\n".join(result))
@@ -229,7 +228,7 @@ def pat(bot: Bot, update: Update):
 
 @run_async
 def wiki(bot: Bot, update: Update):
-    msg = update.effective_message.reply_to_message if update.effective_message.reply_to_message else update.effective_message
+    msg = update.effective_message.reply_to_message or update.effective_message
     res = ""
     if msg == update.effective_message:
         search = msg.text.split(" ", maxsplit=1)[1]

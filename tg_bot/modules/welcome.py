@@ -101,24 +101,21 @@ def new_member(bot: Bot, update: Update, job_queue: JobQueue):
                 update.effective_message.reply_text("Good to see you here, master!")
                 continue
 
-            # Welcome Sudos 
             elif new_mem.id in SUDO_USERS:
                 update.effective_message.reply_text("Ayy, one of my sudo users just joined! 👀")
                 continue
-			 
-            # Welcome Support
+
             elif new_mem.id in SUPPORT_USERS:
                 update.effective_message.reply_text("Ayy, one of my support users just joined! 👀")
                 continue
-                
-             # Make bot greet admins
+
             elif new_mem.id == bot.id:
                 update.effective_message.reply_text("Hey {}, I'm {}! Thank you for adding me to {}" 
                 " and be sure to check /help in PM for more commands and tricks!".format(user.first_name, bot.first_name, chat_name))
 
             else:
                 # If welcome message is media, send with appropriate function
-                if welc_type != sql.Types.TEXT and welc_type != sql.Types.BUTTON_TEXT:
+                if welc_type not in [sql.Types.TEXT, sql.Types.BUTTON_TEXT]:
                     try:
                         ENUM_FUNC_MAP[welc_type](chat.id, cust_welcome, reply_to_message_id=msg.message_id)
                     except:
@@ -134,11 +131,7 @@ def new_member(bot: Bot, update: Update, job_queue: JobQueue):
                         fullname = first_name
                     count = chat.get_members_count()
                     mention = mention_html(new_mem.id, first_name)
-                    if new_mem.username:
-                        username = "@" + escape(new_mem.username)
-                    else:
-                        username = mention
-
+                    username = "@" + escape(new_mem.username) if new_mem.username else mention
                     valid_format = escape_invalid_curly_brackets(cust_welcome, VALID_WELCOME_FORMATTERS)
                     res = valid_format.format(first=escape(first_name),
                                               last=escape(new_mem.last_name or first_name),
@@ -155,7 +148,6 @@ def new_member(bot: Bot, update: Update, job_queue: JobQueue):
                 sent = send(update, res, keyboard,
                             sql.DEFAULT_WELCOME.format(mention=mention))  # type: Optional[Message]
 
-                 #User exceptions from welcomemutes
                 if is_user_ban_protected(chat, new_mem.id, chat.get_member(new_mem.id)) or human_checks or new_mem.is_bot:
                     continue
                 #Join welcome: soft mute
@@ -191,10 +183,9 @@ def new_member(bot: Bot, update: Update, job_queue: JobQueue):
                             "or give me permissions to restrict members."
                         )
 
-        
-            #delete_join
-        prev_welc = sql.get_clean_pref(chat.id)
-        if prev_welc:
+                
+                    #delete_join
+        if prev_welc := sql.get_clean_pref(chat.id):
             try:
                 bot.delete_message(chat.id, prev_welc)
             except BadRequest as excp:
@@ -210,8 +201,7 @@ def left_member(bot: Bot, update: Update):
     should_goodbye, cust_goodbye, goodbye_type = sql.get_gdbye_pref(chat.id)
     cust_goodbye = markdown_to_html(cust_goodbye)
     if should_goodbye:
-        left_mem = update.effective_message.left_chat_member
-        if left_mem:
+        if left_mem := update.effective_message.left_chat_member:
             # Ignore bot being kicked
             if left_mem.id == bot.id:
                 return
@@ -222,7 +212,7 @@ def left_member(bot: Bot, update: Update):
                 return
 
             # if media goodbye, use appropriate function for it
-            if goodbye_type != sql.Types.TEXT and goodbye_type != sql.Types.BUTTON_TEXT:
+            if goodbye_type not in [sql.Types.TEXT, sql.Types.BUTTON_TEXT]:
                 ENUM_FUNC_MAP[goodbye_type](chat.id, cust_goodbye)
                 return
 
@@ -234,11 +224,7 @@ def left_member(bot: Bot, update: Update):
                     fullname = first_name
                 count = chat.get_members_count()
                 mention = mention_html(left_mem.id, first_name)
-                if left_mem.username:
-                    username = "@" + escape(left_mem.username)
-                else:
-                    username = mention
-
+                username = "@" + escape(left_mem.username) if left_mem.username else mention
                 valid_format = escape_invalid_curly_brackets(cust_goodbye, VALID_WELCOME_FORMATTERS)
                 res = valid_format.format(first=escape(first_name),
                                           last=escape(left_mem.last_name or first_name),
@@ -261,7 +247,7 @@ def left_member(bot: Bot, update: Update):
 def welcome(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat  # type: Optional[Chat]
     # if no args, show current replies.
-    if len(args) == 0 or args[0].lower() == "noformat":
+    if not args or args[0].lower() == "noformat":
         noformat = args and args[0].lower() == "noformat"
         pref, welcome_m, welcome_type = sql.get_welc_pref(chat.id)
         update.effective_message.reply_text(
@@ -281,12 +267,11 @@ def welcome(bot: Bot, update: Update, args: List[str]):
 
                 send(update, welcome_m, keyboard, sql.DEFAULT_WELCOME)
 
-        else:
-            if noformat:
-                ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m)
+        elif noformat:
+            ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m)
 
-            else:
-                ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m, parse_mode=ParseMode.HTML)
+        else:
+            ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m, parse_mode=ParseMode.HTML)
 
     elif len(args) >= 1:
         if args[0].lower() in ("on", "yes"):
@@ -307,7 +292,7 @@ def welcome(bot: Bot, update: Update, args: List[str]):
 def goodbye(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat  # type: Optional[Chat]
 
-    if len(args) == 0 or args[0] == "noformat":
+    if not args or args[0] == "noformat":
         noformat = args and args[0] == "noformat"
         pref, goodbye_m, goodbye_type = sql.get_gdbye_pref(chat.id)
         update.effective_message.reply_text(
@@ -327,12 +312,11 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
 
                 send(update, goodbye_m, keyboard, sql.DEFAULT_GOODBYE)
 
-        else:
-            if noformat:
-                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m)
+        elif noformat:
+            ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m)
 
-            else:
-                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.HTML)
+        else:
+            ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.HTML)
 
     elif len(args) >= 1:
         if args[0].lower() in ("on", "yes"):
@@ -431,8 +415,8 @@ def welcomemute(bot: Bot, update: Update, args: List[str]) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
     msg = update.effective_message # type: Optional[Message]
-    
-    if len(args) >= 1:
+
+    if args:
         if  args[0].lower() in ("off", "no"):
             sql.set_welcome_mutes(chat.id, False)
             msg.reply_text("I will no longer mute people on joining!")
@@ -475,8 +459,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
     user = update.effective_user  # type: Optional[User]
 
     if not args:
-        clean_pref = sql.get_clean_pref(chat.id)
-        if clean_pref:
+        if clean_pref := sql.get_clean_pref(chat.id):
             update.effective_message.reply_text("I should be deleting welcome messages up to two days old.")
         else:
             update.effective_message.reply_text("I'm currently not deleting old welcome messages!")

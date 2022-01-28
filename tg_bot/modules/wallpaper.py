@@ -17,11 +17,7 @@ def wall(bot: Bot, update: Update, args):
     chat_id = update.effective_chat.id
     msg = update.effective_message
     msg_id = update.effective_message.message_id
-    query = " ".join(args)
-    if not query:
-        msg.reply_text("Please enter a query!")
-        return
-    else:
+    if query := " ".join(args):
         caption = query
         term = quote(caption)
         json_rep = r.get(f"https://wall.alphacoders.com/api2.0/get.php?auth={WALL_API}&method=search&term={term}").json()
@@ -29,11 +25,7 @@ def wall(bot: Bot, update: Update, args):
             msg.reply_text("Something went wrong...")
             return
         else:
-            wallpapers = json_rep.get("wallpapers")
-            if not wallpapers:
-                msg.reply_text("No results found!")
-                return
-            else:
+            if wallpapers := json_rep.get("wallpapers"):
                 wallpaper = choice(wallpapers)
                 wallpaper = wallpaper.get("url_image")
                 wallpaper = wallpaper.replace("\\", "")
@@ -42,6 +34,12 @@ def wall(bot: Bot, update: Update, args):
                 bot.send_document(chat_id, document=wallpaper,
                 filename='wallpaper', caption=caption, reply_to_message_id=msg_id,
                 timeout=60)
+            else:
+                msg.reply_text("No results found!")
+                return
+    else:
+        msg.reply_text("Please enter a query!")
+        return
                     
             
             

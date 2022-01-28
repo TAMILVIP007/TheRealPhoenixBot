@@ -10,7 +10,7 @@ BL_CHATS_GROUP = -1
 
 def blacklist_chats(bot: Bot, update: Update):
     chat = update.effective_chat
-    if not chat.id in BL_CHATS:
+    if chat.id not in BL_CHATS:
         return
     try:
         chat.send_message(
